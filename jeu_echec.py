@@ -88,7 +88,6 @@ class chess:
         """
         isValidPosition = lambda position: position not in self.pawnPositions(state) and position in self.boardPositions()
         piece = state[color][position]
-        x, y = position
 
         # Kings et Chevals
         if piece in ['K', 'C']:
@@ -99,8 +98,9 @@ class chess:
 
         # Pions
         elif piece == 'P':
+            x, y = position
+            deplacements = ((x, y+1), (x, y+2)) if color == 'white' else ((x, y-1), (x, y-2))
             if y == self.startingLine[color]:
-                deplacements = ((x, y+1), (x, y+2)) if color == 'white' else ((x, y-1), (x, y-2))
                 legalMoves = takewhile(isValidPosition, (move for move in deplacements))
                 for move in legalMoves:
                     yield move
@@ -121,7 +121,6 @@ class chess:
         """
         piece = state[color][position]
         oppoPawnPositions = state[self.oppo[color]].keys()
-        x, y = position
 
         # Pions portés fixes
         if piece in ('K', 'C'):
@@ -131,6 +130,7 @@ class chess:
 
         # Pions
         elif piece == 'P':
+            x, y = position
             legalAttacks = ((x+1, y+1), (x-1, y+1)) if color == 'white' else ((x+1, y-1), (x-1, y-1))
             for attack in legalAttacks:
                 if attack in oppoPawnPositions:
@@ -173,7 +173,7 @@ class chess:
         """
         linePositions = ((x, self.endingLine[color]) for x in range(1, 9))
         for position in linePositions:
-            if position in chain(state['black'], state['white']):
+            if position in self.pawnPositions(state):
                 return position
         return False
 
@@ -197,5 +197,5 @@ class chess:
                 print(f"{piece}: {position} → Moves: {legalMoves}, Attacks: {legalKills}")
 
 jeu = chess()
-print(jeu)
 jeu.displayLegalMoves(jeu.etat)
+print(jeu)
