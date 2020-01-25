@@ -1,5 +1,6 @@
-import sys
+from sys import getsizeof
 from itertools import chain, takewhile
+from more_itertools import first_true, flatten
 
 """
 TODO LIST:
@@ -14,7 +15,7 @@ class chess:
         self.etat = {
         'black':
         {
-        (1, 7): 'P', (2, 7): 'P', (3, 7): 'P', (4, 7): 'P',
+        (1, 7): 'P', (2, 5): 'P', (3, 7): 'P', (4, 7): 'P',
         (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
         (1, 8): 'T', (8, 8): 'T', (2, 8): 'C', (7, 8): 'C',
         (3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
@@ -28,8 +29,8 @@ class chess:
         }
         }
         self.uniCode = {
-        'white': {'P': '♙', 'C': '♘', 'F': '♗', 'Q': '♕', 'K': '♔', 'T': '♖'},
-        'black': {'P': '♟', 'C': '♞', 'F': '♝', 'Q': '♛', 'K': '♚', 'T': '♜'}
+        'black': {'P': '♙', 'C': '♘', 'F': '♗', 'Q': '♕', 'K': '♔', 'T': '♖'},
+        'white': {'P': '♟', 'C': '♞', 'F': '♝', 'Q': '♛', 'K': '♚', 'T': '♜'}
         }
         self.oppo = {'black':'white', 'white':'black'}
         self.pawnKilled = {'black':[], 'white':[]}
@@ -43,7 +44,7 @@ class chess:
         for color, positions in self.etat.items():
             for position, piece in positions.items():
                 x, y = position
-                board[y-1][x-1] = self.uniCode[color][piece]
+                board[8-y][x-1] = self.uniCode[color][piece]
 
         return '\n'.join(' '.join(spot for spot in row) for row in board)
 
@@ -89,13 +90,12 @@ class chess:
         isValidPosition = lambda position: position not in self.pawnPositions(state) and position in self.boardPositions()
         piece = state[color][position]
 
-        # Kings et Chevals
+        # Pions portés fixes
         if piece in ['K', 'C']:
             freeSpots = set(self.boardPositions()) - set(self.pawnPositions(state))
             legalMoves = freeSpots & set(self.moveBank(position, piece))
             for move in legalMoves:
                 yield move
-
         # Pions
         elif piece == 'P':
             x, y = position
@@ -104,10 +104,9 @@ class chess:
                 legalMoves = takewhile(isValidPosition, (move for move in deplacements))
                 for move in legalMoves:
                     yield move
-            elif move := deplacements[0] not in state and move in self.boardPositions():
-                yield move
-
-        # Queens, Tours, Fous
+            elif isValidPosition(move := deplacements[0]):
+                    yield move
+        # Pions longues portées
         else:
             legalMoves = map(lambda direction: takewhile(isValidPosition, direction), self.moveBank(position, piece))
             for moves in legalMoves:
@@ -127,7 +126,6 @@ class chess:
             if attacks := set(oppoPawnPositions) & set(self.moveBank(position, piece)):
                 for attack in attacks:
                     yield attack
-
         # Pions
         elif piece == 'P':
             x, y = position
@@ -135,23 +133,13 @@ class chess:
             for attack in legalAttacks:
                 if attack in oppoPawnPositions:
                     yield attack
-
         # Pions longues portées
         else:
+            isPawn = lambda position: position in self.pawnPositions(state)
             for direction in self.moveBank(position, piece):
-                for move in direction:
-                    # Out of bound, break
-                    if move not in self.boardPositions():
-                        break
-                    # Case libre, aucun pion à manger, continue
-                    elif move not in self.pawnPositions(state):
-                        continue
-                    # Case occupée mais pas pion adverse, break
-                    elif move not in oppoPawnPositions:
-                        break
-                    # Nécessairement, une attaque est possible
-                    yield move
-                    break
+                if attack := first_true(direction, default=False, pred=isPawn):
+                    if attack in oppoPawnPositions:
+                        yield attack
 
     def movePiece(self, color, pos1, pos2):
         pass
@@ -182,8 +170,10 @@ class chess:
         Méthode qui permet de déplacer conditionnellement un pion
         Retourne un état de partie
         """
-        piece, modification = etatCourant[color][pos1], {color:{pos2:piece}}
-        etatCourant.update(modification)
+        piece = etatCourant[color][pos1]
+        if pos2 in etatCourant[self.oppo[color]]:
+            del etatCourant[self.oppo[color]][pos2]
+        etatCourant[color].update({pos2:piece})
         del etatCourant[color][pos1]
 
         return etatCourant
@@ -194,7 +184,7 @@ class chess:
             for position, piece in positions.items():
                 legalMoves = ', '.join(str(move) for move in self.moveGenerator(state, color, position))
                 legalKills = ', '.join(str(attack) for attack in self.killGenerator(state, color, position))
-                print(f"{piece}: {position} → Moves: {legalMoves}, Attacks: {legalKills}")
+                print(f"{piece}: {position} → Moves: {legalMoves} Attacks: {legalKills}")
 
 jeu = chess()
 jeu.displayLegalMoves(jeu.etat)
