@@ -15,7 +15,7 @@ class chess:
         self.etat = {
         'black':
         {
-        (1, 7): 'P', (2, 5): 'P', (3, 7): 'P', (4, 7): 'P',
+        (1, 7): 'P', (2, 7): 'P', (3, 7): 'P', (4, 7): 'P',
         (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
         (1, 8): 'T', (8, 8): 'T', (2, 8): 'C', (7, 8): 'C',
         (3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
@@ -36,7 +36,8 @@ class chess:
         self.pawnKilled = {'black':[], 'white':[]}
         self.startingLine = {'black': 7, 'white': 2}
         self.endingLine = {'black': 1, 'white': 8}
-        self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1,9))
+        self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1, 9))
+        self.onBoard = lambda position: 1 <= position[0] <= 8 and 1 <= position[1] <= 8
         self.pawnPositions = lambda state: chain(state['black'], state['white'])
 
     def __str__(self):
@@ -87,7 +88,7 @@ class chess:
         """
         Méthode qui génère les déplacement légals pour la position demandée
         """
-        isValidPosition = lambda position: position not in self.pawnPositions(state) and position in self.boardPositions()
+        isValidPosition = lambda position: position not in self.pawnPositions(state) and self.onBoard(position)
         piece = state[color][position]
 
         # Pions portés fixes
