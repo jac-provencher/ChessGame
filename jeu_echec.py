@@ -1,13 +1,14 @@
+from copy import deepcopy
 from sys import getsizeof
 from itertools import chain, takewhile
-from more_itertools import first_true, flatten
+from more_itertools import first_true
 
 """
 TODO LIST:
 (1) OK les méthodes isValidPosition, takeWhile et pawnPositions doivent pouvoir prendre en argument un etat de jeu
 (2) OK Faire les méthodes movePiece et killPiece
 (3) Trouver un moyen de simplifier moveBank
-(4) Faire isCheckmate
+(4) OK Faire isCheckmate
 (5) OK Faire isCheck
 """
 
@@ -47,14 +48,13 @@ class chess:
 
     def __str__(self):
         """Retourne une représentation en ASCII du board"""
-        side = '='*16 + '\n'
         board = [['.' for x in range(8)] for y in range(8)]
         for color, positions in self.etat.items():
             for position, piece in positions.items():
                 x, y = position
                 board[8-y][x-1] = self.uniCode[color][piece]
 
-        return side + '\n'.join(' '.join(spot for spot in row) for row in board)
+        return '='*16 + '\n' + '\n'.join(' '.join(spot for spot in row) for row in board) + '\n' + '='*16
 
     def moveBank(self, position, piece):
         """
@@ -199,21 +199,34 @@ class chess:
         if pos2 not in chain(self.moveGenerator(self.etat, color, pos1), self.killGenerator(self.etat, color, pos1)):
             raise ChessError("Ce coup ne respecte pas les règles du jeu.")
 
-    def isCheckmate(self, state):
-        pass
+    def isCheckmate(self, state, color):
+        """
+        Méthode qui verifie si le roi 'color'
+        est en situation d'échec et mat.
+        Retourne le gagnant si oui,
+        False autrement.
+        """
+        if not self.isCheck(state, color):
+            return False
 
-    def isCheck(self, state):
+        for position in state[color]:
+            for move in chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position)):
+                temporaryState = self.simulateState(state, color, position, move)
+                if not self.isCheck(temporaryState, color):
+                    return False
+        return f"Le gagnant est le joueur {self.oppo[color]}!"
+
+    def isCheck(self, state, color):
         """
         Vérifie si un des roi est en échec.
         Retourne un bool
         """
-        for color, positions in state.items():
-            for position, piece in positions.items():
-                if piece == 'K':
-                    oppoTargets = (move for pos in state[self.oppo[color]] for move in self.killGenerator(state, self.oppo[color], pos))
-                    if position in oppoTargets:
-                        return True
-                    break
+        oppoTargets = (move for position in state[self.oppo[color]] for move in self.killGenerator(state, self.oppo[color], position))
+        for position, piece in state[color].items():
+            if piece == 'K':
+                if position in oppoTargets:
+                    return True
+                break
         return False
 
     def pawnPromotion(self, state, color):
@@ -234,12 +247,13 @@ class chess:
         Retourne un état de partie
         """
         piece = etatCourant[color][pos1]
-        if pos2 in etatCourant[self.oppo[color]]:
-            del etatCourant[self.oppo[color]][pos2]
-        etatCourant[color].update({pos2:piece})
-        del etatCourant[color][pos1]
+        futureState = deepcopy(etatCourant)
+        if pos2 in futureState[self.oppo[color]]:
+            del futureState[self.oppo[color]][pos2]
+        futureState[color].update({pos2:piece})
+        del futureState[color][pos1]
 
-        return etatCourant
+        return futureState
 
     def displayLegalMoves(self, state):
         for color, positions in state.items():
@@ -252,3 +266,11 @@ class chess:
 jeu = chess()
 jeu.displayLegalMoves(jeu.etat)
 print(jeu)
+jeu.movePiece('black', (3, 7), (3, 5))
+jeu.movePiece('white', (3, 2), (3, 4))
+jeu.movePiece('black', (4, 8), (1, 5))
+jeu.movePiece('black', (1, 5), (1, 4))
+jeu.movePiece('white', (2, 2), (2, 4))
+jeu.displayLegalMoves(jeu.etat)
+print(jeu)
+print(jeu.isCheckmate(jeu.etat, 'white'))
