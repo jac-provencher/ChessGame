@@ -5,9 +5,14 @@ from more_itertools import first_true, flatten
 """
 TODO LIST:
 (1) OK les méthodes isValidPosition, takeWhile et pawnPositions doivent pouvoir prendre en argument un etat de jeu
-(2) Faire les méthodes movePiece et killPiece
+(2) OK Faire les méthodes movePiece et killPiece
 (3) Trouver un moyen de simplifier moveBank
+(4) Faire isCheckmate
+(5) OK Faire isCheck
 """
+
+class ChessError(Exception):
+    """Classe pour chess"""
 
 class chess:
 
@@ -41,13 +46,15 @@ class chess:
         self.pawnPositions = lambda state: chain(state['black'], state['white'])
 
     def __str__(self):
+        """Retourne une représentation en ASCII du board"""
+        side = '='*16 + '\n'
         board = [['.' for x in range(8)] for y in range(8)]
         for color, positions in self.etat.items():
             for position, piece in positions.items():
                 x, y = position
                 board[8-y][x-1] = self.uniCode[color][piece]
 
-        return '\n'.join(' '.join(spot for spot in row) for row in board)
+        return side + '\n'.join(' '.join(spot for spot in row) for row in board)
 
     def moveBank(self, position, piece):
         """
@@ -102,7 +109,7 @@ class chess:
             x, y = position
             deplacements = ((x, y+1), (x, y+2)) if color == 'white' else ((x, y-1), (x, y-2))
             if y == self.startingLine[color]:
-                legalMoves = takewhile(isValidPosition, (move for move in deplacements))
+                legalMoves = takewhile(isValidPosition, deplacements)
                 for move in legalMoves:
                     yield move
             elif isValidPosition(move := deplacements[0]):
@@ -143,16 +150,71 @@ class chess:
                         yield attack
 
     def movePiece(self, color, pos1, pos2):
-        pass
+        """
+        Méthode qui permet de déplacer le pion
+        à pos1 vers pos2.
+        """
+        # Check l'input
+        self.isValidInput(color, pos1, pos2)
+
+        # Déplacement du pion (pos1 --> pos2)
+        piece = self.etat[color][pos1]
+        self.etat[color].update({pos2:piece})
+        del self.etat[color][pos1]
 
     def killPiece(self, color, pos1, pos2):
-        pass
+        """
+        Méthode qui permet d'attaquer le pion
+        à pos2 avec le pion à pos1
+        """
+        # Check l'input
+        if pos2 not in self.etat[self.oppo[color]]:
+            raise ChessError("Aucun pion adverse ne peut être mangé à cette position.")
+
+        # Déplacement du pion (pos1 --> pos2)
+        self.movePiece(color, pos1, pos2)
+
+        # Suppression du pion à pos2
+        del self.etat[self.oppo[color]][pos2]
+        self.pawnKilled[self.oppo[color]].append(target)
+
+    def isValidInput(self, color, pos1, pos2):
+        """
+        Méthode qui valide si le input rentrer
+        par l'utilisateur est valide. Raise une
+        ChessError
+        """
+        if not isinstance(color, str):
+            raise ChessError("La couleur doit être une chaine de caractère.")
+        if color not in ('black', 'white'):
+            raise ChessError("Couleur invalide.")
+        if not isinstance(pos1, tuple) or not isinstance(pos2, tuple):
+            raise ChessError("Au moins une des positions n'a pas le bon format, soit (x, y).")
+        if len(pos1) != 2 or len(pos2) != 2:
+            raise ChessError("Au moins une des positions n'a pas le bon nombre d'éléments.")
+        if not self.onBoard(pos1) or not self.onBoard(pos2):
+            raise ChessError("Au moins une des positions n'est pas sur l'échiquier")
+        if pos1 not in self.etat[color]:
+            raise ChessError(f"La case sélectionné n'est pas occupé par un pion {color}")
+        if pos2 not in chain(self.moveGenerator(self.etat, color, pos1), self.killGenerator(self.etat, color, pos1)):
+            raise ChessError("Ce coup ne respecte pas les règles du jeu.")
 
     def isCheckmate(self, state):
         pass
 
     def isCheck(self, state):
-        pass
+        """
+        Vérifie si un des roi est en échec.
+        Retourne un bool
+        """
+        for color, positions in state.items():
+            for position, piece in positions.items():
+                if piece == 'K':
+                    oppoTargets = (move for pos in state[self.oppo[color]] for move in self.killGenerator(state, self.oppo[color], pos))
+                    if position in oppoTargets:
+                        return True
+                    break
+        return False
 
     def pawnPromotion(self, state, color):
         """
