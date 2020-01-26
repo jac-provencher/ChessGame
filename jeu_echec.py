@@ -11,6 +11,7 @@ TODO LIST:
 (4) OK Faire isCheckmate
 (5) OK Faire isCheck
 (6) Apprendre à travailler avec les files (pour avoir un historique des coups joués)
+(7) Voir si possible d'implanter la sous-promotion
 """
 
 class ChessError(Exception):
@@ -22,14 +23,14 @@ class chess:
         self.etat = {
         'black':
         {
-        (1, 7): 'P', (3, 7): 'P', (4, 7): 'P',
+        (1, 7): 'P', (3, 7): 'P', (4, 7): 'P', (2, 7): 'P',
         (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
-        (1, 8): 'T', (8, 8): 'T', (7, 8): 'C',
+        (1, 8): 'T', (8, 8): 'T', (7, 8): 'C', (2, 8): 'C',
         (3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
         },
         'white':
         {
-        (1, 2): 'P', (2, 6): 'P', (3, 2): 'P', (4, 2): 'P',
+        (1, 2): 'P', (2, 2): 'P', (3, 2): 'P', (4, 2): 'P',
         (5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 2): 'P',
         (1, 1): 'T', (8, 1): 'T', (2, 1): 'C', (7, 1): 'C',
         (3, 1): 'F', (6, 1): 'F', (5, 1): 'K', (4, 1): 'Q'
@@ -100,7 +101,7 @@ class chess:
         piece = state[color][position]
 
         # Pions portés fixes
-        if piece in ['K', 'C']:
+        if piece in ('K', 'C'):
             freeSpots = set(self.boardPositions()) - set(self.pawnPositions(state))
             legalMoves = freeSpots & set(self.moveBank(position, piece))
             for move in legalMoves:
@@ -155,9 +156,6 @@ class chess:
         Méthode qui permet de déplacer le pion
         à pos1 vers pos2.
         """
-        # Check l'input
-        self.isValidInput(color, pos1, pos2)
-
         # Déplacement du pion (pos1 --> pos2)
         piece = self.etat[color][pos1]
         self.etat[color].update({pos2:piece})
@@ -166,6 +164,10 @@ class chess:
         # Check si promotion possible
         if position := self.pawnPromotion(self.etat, color):
             self.etat[color].update({position:'Q'})
+
+        # Check si echec et mat
+        elif winner := self.isCheckmate(self.etat, self.oppo[color]):
+            raise ChessError(winner)
 
     def killPiece(self, color, pos1, pos2):
         """
@@ -183,6 +185,20 @@ class chess:
         target = self.etat[self.oppo[color]][pos2]
         self.pawnKilled[self.oppo[color]].append(target)
         del self.etat[self.oppo[color]][pos2]
+
+    def getMove(self, color, pos1, pos2):
+        """
+        Méthode qui prend le input de l'utilisateur
+        Appel la méthode approprié selon le coup.
+        """
+        # Check l'input
+        self.isValidInput(color, pos1, pos2)
+
+        # Appel de la bonne méthode
+        if pos2 in self.etat[self.oppo[color]]:
+            self.killPiece(color, pos1, pos2)
+        else:
+            self.movePiece(color, pos1, pos2)
 
     def isValidInput(self, color, pos1, pos2):
         """
@@ -271,11 +287,4 @@ class chess:
                 print(f"{piece}: {position} → Moves: {legalMoves} Attacks: {legalKills}")
 
 jeu = chess()
-jeu.displayLegalMoves(jeu.etat)
-print(jeu)
-jeu.movePiece('white', (2, 6), (2, 7))
-print(jeu)
-jeu.killPiece('white', (2, 7), (3, 8))
-print(jeu)
-jeu.movePiece('white', (3, 8), (1, 6))
 print(jeu)
