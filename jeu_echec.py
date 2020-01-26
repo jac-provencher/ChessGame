@@ -10,10 +10,11 @@ TODO LIST:
 (3) Trouver un moyen de simplifier moveBank
 (4) OK Faire isCheckmate
 (5) OK Faire isCheck
+(6) Apprendre à travailler avec les files (pour avoir un historique des coups joués)
 """
 
 class ChessError(Exception):
-    """Classe pour chess"""
+    """Classe pour les erreurs soulevées par chess."""
 
 class chess:
 
@@ -21,17 +22,17 @@ class chess:
         self.etat = {
         'black':
         {
-        (1, 7): 'P', (2, 7): 'P', (3, 7): 'P', (4, 7): 'P',
+        (1, 7): 'P', (3, 7): 'P', (4, 7): 'P',
         (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
-        (1, 8): 'T', (8, 8): 'T', (2, 8): 'C', (7, 8): 'C',
+        (1, 8): 'T', (8, 8): 'T', (7, 8): 'C',
         (3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
         },
         'white':
         {
-        (1, 2): 'P', (2, 2): 'P', (3, 2): 'P', (4, 2): 'P',
+        (1, 2): 'P', (2, 6): 'P', (3, 2): 'P', (4, 2): 'P',
         (5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 2): 'P',
         (1, 1): 'T', (8, 1): 'T', (2, 1): 'C', (7, 1): 'C',
-        (3, 1): 'F', (6, 1): 'F', (4, 1): 'K', (5, 1): 'Q'
+        (3, 1): 'F', (6, 1): 'F', (5, 1): 'K', (4, 1): 'Q'
         }
         }
         self.uniCode = {
@@ -162,6 +163,10 @@ class chess:
         self.etat[color].update({pos2:piece})
         del self.etat[color][pos1]
 
+        # Check si promotion possible
+        if position := self.pawnPromotion(self.etat, color):
+            self.etat[color].update({position:'Q'})
+
     def killPiece(self, color, pos1, pos2):
         """
         Méthode qui permet d'attaquer le pion
@@ -175,8 +180,9 @@ class chess:
         self.movePiece(color, pos1, pos2)
 
         # Suppression du pion à pos2
-        del self.etat[self.oppo[color]][pos2]
+        target = self.etat[self.oppo[color]][pos2]
         self.pawnKilled[self.oppo[color]].append(target)
+        del self.etat[self.oppo[color]][pos2]
 
     def isValidInput(self, color, pos1, pos2):
         """
@@ -214,6 +220,7 @@ class chess:
                 temporaryState = self.simulateState(state, color, position, move)
                 if not self.isCheck(temporaryState, color):
                     return False
+
         return f"Le gagnant est le joueur {self.oppo[color]}!"
 
     def isCheck(self, state, color):
@@ -237,7 +244,7 @@ class chess:
         """
         linePositions = ((x, self.endingLine[color]) for x in range(1, 9))
         for position in linePositions:
-            if position in self.pawnPositions(state):
+            if position in state[color]:
                 return position
         return False
 
@@ -266,11 +273,9 @@ class chess:
 jeu = chess()
 jeu.displayLegalMoves(jeu.etat)
 print(jeu)
-jeu.movePiece('black', (3, 7), (3, 5))
-jeu.movePiece('white', (3, 2), (3, 4))
-jeu.movePiece('black', (4, 8), (1, 5))
-jeu.movePiece('black', (1, 5), (1, 4))
-jeu.movePiece('white', (2, 2), (2, 4))
-jeu.displayLegalMoves(jeu.etat)
+jeu.movePiece('white', (2, 6), (2, 7))
 print(jeu)
-print(jeu.isCheckmate(jeu.etat, 'white'))
+jeu.killPiece('white', (2, 7), (3, 8))
+print(jeu)
+jeu.movePiece('white', (3, 8), (1, 6))
+print(jeu)
