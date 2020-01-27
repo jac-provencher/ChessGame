@@ -9,8 +9,10 @@ class display(chess):
     def __init__(self):
         super().__init__()
         pygame.display.set_caption("Échecs")
-        self.screenWidth = self.screenHeight = 696
+        self.screenWidth = 800
+        self.screenHeight = 696
         self.screen = pygame.display.set_mode((self.screenWidth, self.screenHeight))
+        self.screen.fill((104, 103, 98))
         self.board = pygame.image.load("board.png")
         self.contour = pygame.image.load("contour.png")
         self.circle = pygame.image.load("circle.png")
@@ -35,12 +37,13 @@ class display(chess):
         }
         }
         self.clickPosition = [(0, 0), (0, 0)]
-        self.convert = lambda position:(position[0]//87+1, 8-position[1]//87)
         self.cursorPosition = None
-
-    def getPos(self, positions):
-        pos1, pos2 = list(tail(2, positions))
-        return pos1, pos2
+        self.windowToBoard = lambda position:(position[0]//87+1, 8-position[1]//87)
+        self.boardToWindow = lambda position: ((position[0]-1)*87, self.screenHeight - (position[1])*87)
+        self.getPos = lambda positions: list(tail(2, positions))
+        self.showMove = True
+        self.button = {True: pygame.image.load("on.png"), False: pygame.image.load("off.png")}
+        self.moveSound = pygame.mixer.Sound("moveSound.wav")
 
     def redrawScreen(self, screen):
         """
@@ -51,20 +54,21 @@ class display(chess):
         # Positions des pions
         for color, positions in self.etat.items():
             for position, piece in positions.items():
-                x = (position[0]-1)*(self.screenWidth//8)
-                y = self.screenHeight - (position[1])*(self.screenHeight//8)
-                screen.blit(self.pieces[color][piece], (x, y))
+                pos = self.boardToWindow(position)
+                screen.blit(self.pieces[color][piece], pos)
 
-        # Show les deplacements valides
-        if self.cursorPosition in self.etat['white']:
+        # Show les deplacements et attaques valides
+        if self.cursorPosition in self.etat['white'] and self.showMove:
             for move in self.moveGenerator(self.etat, 'white', self.cursorPosition):
-                x = (move[0]-1)*(self.screenWidth//8)
-                y = self.screenHeight - (move[1])*(self.screenHeight//8)
-                self.screen.blit(self.contour, (x, y))
+                pos = self.boardToWindow(move)
+                screen.blit(self.contour, pos)
             for attack in self.killGenerator(self.etat, 'white', self.cursorPosition):
-                x = (attack[0]-1)*(self.screenWidth//8)
-                y = self.screenHeight - (attack[1])*(self.screenHeight//8)
-                self.screen.blit(self.circle, (x, y))
+                pos = self.boardToWindow(attack)
+                screen.blit(self.circle, pos)
+
+        # Update button state
+        position = self.boardToWindow((9, 5))
+        screen.blit(self.button[self.showMove], position)
 
         pygame.display.update()
 
@@ -74,13 +78,21 @@ turn = 'white'
 while running:
 
     for event in pygame.event.get():
+
         if event.type == pygame.QUIT:
             running = False
+
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            partie.clickPosition.append(partie.convert(event.pos))
+            mouseClick = partie.windowToBoard(event.pos)
+
+            if mouseClick in ((9, 5), (10, 5)):
+                partie.showMove = not partie.showMove
+
+            partie.clickPosition.append(mouseClick)
             try:
                 pos1, pos2 = partie.getPos(partie.clickPosition)
                 partie.getMove('white', pos1, pos2)
+                partie.moveSound.play()
             except ChessError:
                 turn = 'white'
                 continue
@@ -91,7 +103,7 @@ while running:
                 partie.autoplay('black')
                 turn = 'white'
 
-    partie.cursorPosition = partie.convert(pygame.mouse.get_pos())
+    partie.cursorPosition = partie.windowToBoard(pygame.mouse.get_pos())
 
     partie.redrawScreen(partie.screen)
 
