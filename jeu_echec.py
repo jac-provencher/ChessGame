@@ -12,6 +12,7 @@ TODO LIST:
 (5) OK Faire isCheck
 (6) Apprendre à travailler avec les files (pour avoir un historique des coups joués)
 (7) Voir si possible d'implanter la sous-promotion
+(8) Faire un affichage avec pygame
 """
 
 class ChessError(Exception):
