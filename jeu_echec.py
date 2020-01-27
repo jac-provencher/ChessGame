@@ -187,7 +187,7 @@ class chess:
         self.pawnKilled[self.oppo[color]].append(target)
         del self.etat[self.oppo[color]][pos2]
 
-    def getMove(self, color, pos1, pos2):
+    def getMove(self, color, pos1=None, pos2=None):
         """
         Méthode qui prend le input de l'utilisateur
         Appel la méthode approprié selon le coup.
