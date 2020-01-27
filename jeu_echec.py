@@ -2,6 +2,7 @@ from copy import deepcopy
 from sys import getsizeof
 from itertools import chain, takewhile
 from more_itertools import first_true
+from random import choice
 
 """
 TODO LIST:
@@ -12,7 +13,7 @@ TODO LIST:
 (5) OK Faire isCheck
 (6) Apprendre à travailler avec les files (pour avoir un historique des coups joués)
 (7) Voir si possible d'implanter la sous-promotion
-(8) Faire un affichage avec pygame
+(8) OK Faire un affichage avec pygame
 """
 
 class ChessError(Exception):
@@ -152,6 +153,19 @@ class chess:
                     if attack in oppoPawnPositions:
                         yield attack
 
+    def autoplay(self, color):
+        """
+        Méthode qui joue un coup automatiquement
+        pour les pions 'color'
+        """
+        moves = {}
+        for position in self.etat[color]:
+            if deplacements := list(self.moveGenerator(self.etat, color, position)):
+                moves[position] = [move for move in deplacements]
+        pos1 = choice(list(moves.keys()))
+        pos2 = choice(moves[pos1])
+        self.movePiece(color, pos1, pos2)
+
     def movePiece(self, color, pos1, pos2):
         """
         Méthode qui permet de déplacer le pion
@@ -261,7 +275,7 @@ class chess:
         """
         linePositions = ((x, self.endingLine[color]) for x in range(1, 9))
         for position in linePositions:
-            if position in state[color]:
+            if position in state[color] and state[color][position] == 'P':
                 return position
         return False
 

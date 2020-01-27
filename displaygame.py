@@ -12,6 +12,8 @@ class display(chess):
         self.screenWidth = self.screenHeight = 696
         self.screen = pygame.display.set_mode((self.screenWidth, self.screenHeight))
         self.board = pygame.image.load("board.png")
+        self.contour = pygame.image.load("contour.png")
+        self.circle = pygame.image.load("circle.png")
         self.pieces = {
         'black':
         {
@@ -33,38 +35,64 @@ class display(chess):
         }
         }
         self.clickPosition = [(0, 0), (0, 0)]
+        self.convert = lambda position:(position[0]//87+1, 8-position[1]//87)
+        self.cursorPosition = None
 
     def getPos(self, positions):
         pos1, pos2 = list(tail(2, positions))
         return pos1, pos2
 
-    def draw(self, screen):
+    def redrawScreen(self, screen):
+        """
+        Méthode qui regénère la fenêtre à chaque loop
+        """
         screen.blit(self.board, (0, 0))
+
+        # Positions des pions
         for color, positions in self.etat.items():
             for position, piece in positions.items():
                 x = (position[0]-1)*(self.screenWidth//8)
                 y = self.screenHeight - (position[1])*(self.screenHeight//8)
                 screen.blit(self.pieces[color][piece], (x, y))
 
+        # Show les deplacements valides
+        if self.cursorPosition in self.etat['white']:
+            for move in self.moveGenerator(self.etat, 'white', self.cursorPosition):
+                x = (move[0]-1)*(self.screenWidth//8)
+                y = self.screenHeight - (move[1])*(self.screenHeight//8)
+                self.screen.blit(self.contour, (x, y))
+            for attack in self.killGenerator(self.etat, 'white', self.cursorPosition):
+                x = (attack[0]-1)*(self.screenWidth//8)
+                y = self.screenHeight - (attack[1])*(self.screenHeight//8)
+                self.screen.blit(self.circle, (x, y))
+
         pygame.display.update()
 
 partie = display()
 running = True
+turn = 'white'
 while running:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            position = (event.pos[0]//87+1, 8-event.pos[1]//87)
-            partie.clickPosition.append(position)
+            partie.clickPosition.append(partie.convert(event.pos))
             try:
                 pos1, pos2 = partie.getPos(partie.clickPosition)
                 partie.getMove('white', pos1, pos2)
-            except ChessError as err:
-                print(err)
+            except ChessError:
+                turn = 'white'
                 continue
+            else:
+                turn = 'black'
 
-    partie.draw(partie.screen)
+            if turn == 'black':
+                partie.autoplay('black')
+                turn = 'white'
+
+    partie.cursorPosition = partie.convert(pygame.mouse.get_pos())
+
+    partie.redrawScreen(partie.screen)
 
 pygame.quit()
