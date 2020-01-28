@@ -12,10 +12,10 @@ class display(chess):
         # Caractéristiques de la fenêtre
         pygame.display.set_caption("Échecs")
         self.dx = 104
-        self.screenHeight = 696
-        self.screenWidth = 696
-        self.squareX, self.squareY = self.screenWidth//8, self.screenHeight//8
-        self.screen = pygame.display.set_mode((self.screenWidth + self.dx, self.screenHeight))
+        self.boardHeight = 696
+        self.boardWidth = 696
+        self.squareX, self.squareY = self.boardWidth//8, self.boardHeight//8
+        self.screen = pygame.display.set_mode((self.boardWidth + self.dx, self.boardHeight))
         self.screen.fill((104, 103, 98))
 
         # Images
@@ -49,10 +49,10 @@ class display(chess):
 
         # Fonctions anonymes pour les positions
         self.windowToBoard = lambda position: (position[0]//self.squareX+1, 8-position[1]//self.squareY)
-        self.boardToWindow = lambda position: ((position[0]-1)*self.squareX, self.screenHeight - (position[1])*self.squareY)
+        self.boardToWindow = lambda position: ((position[0]-1)*self.squareX, self.boardHeight - (position[1])*self.squareY)
         self.getLastPositions = lambda positions: list(tail(2, positions))
-        self.scaleX = lambda index: self.screenWidth + (index // 3) * ((self.screenWidth // 8) // 3)
-        self.scaleY = lambda index: (index % 4) * ((self.screenHeight // 8) // 3) + (self.screenHeight // 8) // 10
+        self.scaleX = lambda index: self.boardWidth + (index // 5) * ((self.boardWidth // 8) // 3)
+        self.scaleY = lambda index: (index % 5) * ((self.boardHeight // 8) // 3) + (self.boardHeight // 8) // 10
 
         # Boolean values
         self.showMove = True
@@ -60,6 +60,7 @@ class display(chess):
 
         # Importation de sons
         self.moveSound = pygame.mixer.Sound("moveSound.wav")
+        self.buttonSound = pygame.mixer.Sound("switchSound.wav")
 
     def redrawScreen(self, screen):
         """
@@ -83,12 +84,12 @@ class display(chess):
                 screen.blit(self.circle, pos)
 
         # Update button state
-        position = (self.screenWidth, (self.screenHeight-55)//2)
+        position = (self.boardWidth, (self.boardHeight-55)//2)
         screen.blit(self.button[self.showMove], position)
 
         # Display les pions mangés
         for color, pions in self.pawnKilled.items():
-            for i, pion in enumerate(sorted(pions)):
+            for i, pion in enumerate(pions):
                 pawnScaled = pygame.transform.scale(self.pieces[color][pion], (self.squareX//3, self.squareY//3))
                 screen.blit(pawnScaled, (self.scaleX(i), self.scaleY(i)))
 
@@ -96,11 +97,13 @@ class display(chess):
 
     def isClicked(self, button, clickPosition):
         x, y = clickPosition
-        middleY, dy = self.screenHeight/2, 59/2
+        middleY, dy = self.boardHeight/2, 59/2
         booleanDico = {
-        'showMove': self.screenWidth <= x <= self.screenWidth + self.dx and middleY - dy <= y <= middleY + dy
+        'showMove': self.boardWidth <= x <= self.boardWidth + self.dx and middleY - dy <= y <= middleY + dy
         }
-        self.showMove = not self.showMove if booleanDico['showMove'] else self.showMove
+        if booleanDico['showMove']:
+            self.showMove = not self.showMove
+            self.buttonSound.play()
 
 partie = display()
 running = True

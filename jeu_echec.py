@@ -14,6 +14,7 @@ TODO LIST:
 (6) Apprendre à travailler avec les files (pour avoir un historique des coups joués)
 (7) Voir si possible d'implanter la sous-promotion
 (8) OK Faire un affichage avec pygame
+(9) Faire algorithme minimax
 """
 
 class ChessError(Exception):
@@ -42,6 +43,7 @@ class chess:
         'black': {'P': '♙', 'C': '♘', 'F': '♗', 'Q': '♕', 'K': '♔', 'T': '♖'},
         'white': {'P': '♟', 'C': '♞', 'F': '♝', 'Q': '♛', 'K': '♚', 'T': '♜'}
         }
+        self.pawnValue = {'P':10, 'C':30, 'F':30, 'T':50, 'Q':90, 'K':1000}
         self.oppo = {'black':'white', 'white':'black'}
         self.pawnKilled = {'black':[], 'white':[]}
         self.startingLine = {'black': 7, 'white': 2}
@@ -49,6 +51,7 @@ class chess:
         self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1, 9))
         self.onBoard = lambda position: 1 <= position[0] <= 8 and 1 <= position[1] <= 8
         self.pawnPositions = lambda state: chain(state['black'], state['white'])
+        self.infinity = 999_999_999
 
     def __str__(self):
         """Retourne une représentation en ASCII du board"""
@@ -152,19 +155,6 @@ class chess:
                 if attack := first_true(direction, default=False, pred=isPawn):
                     if attack in oppoPawnPositions:
                         yield attack
-
-    def autoplay(self, color):
-        """
-        Méthode qui joue un coup automatiquement
-        pour les pions 'color'
-        """
-        moves = {}
-        for position in self.etat[color]:
-            if deplacements := list(self.moveGenerator(self.etat, color, position)):
-                moves[position] = [move for move in deplacements]
-        pos1 = choice(list(moves.keys()))
-        pos2 = choice(moves[pos1])
-        self.movePiece(color, pos1, pos2)
 
     def movePiece(self, color, pos1, pos2):
         """
@@ -293,6 +283,76 @@ class chess:
 
         return futureState
 
+    def autoplay(self, color):
+        """
+        Méthode qui joue un coup automatiquement
+        pour les pions 'color'
+        """
+        pos1, pos2 = self.minimax(3, self.etat, color, -self.infinity, self.infinity, True)[1]
+
+        # Appel de la bonne méthode
+        if pos2 in self.etat[self.oppo[color]]:
+            self.killPiece(color, pos1, pos2)
+        else:
+            self.movePiece(color, pos1, pos2)
+
+    def minimax(self, depth, state, color, alpha, beta,  isMaximizing):
+        """
+        Méthode permettant de chercher, dans l'arbre de récursion,
+        le coup le plus avantageux pour le joueur 'color'.
+        :returns: (value, position)
+        """
+        if depth == 0 or self.isCheckmate(state, color):
+            return -self.staticEvaluation(state, color), None
+
+        elif isMaximizing:
+            maxEval = -self.infinity
+            bestMove = None
+            for position in state[color]:
+                possibleMoves = chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position))
+                for move in possibleMoves:
+                    temportaryState = self.simulateState(state, color, position, move)
+                    bestReply = self.minimax(depth-1, temportaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
+                    if bestReply > maxEval:
+                        maxEval, bestMove = bestReply, (position, move)
+                    alpha = max(alpha, maxEval)
+                    if beta <= alpha:
+                        return maxEval, bestMove
+
+            return maxEval, bestMove
+
+        else:
+            minEval = self.infinity
+            bestMove = None
+            for position in state[color]:
+                possibleMoves = chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position))
+                for move in possibleMoves:
+                    temportaryState = self.simulateState(state, color, position, move)
+                    bestReply = self.minimax(depth-1, temportaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
+                    if bestReply < minEval:
+                        minEval, bestMove = bestReply, (position, move)
+                    beta = min(beta, minEval)
+                    if beta <= alpha:
+                        return minEval, bestMove
+
+            return minEval, bestMove
+
+    def staticEvaluation(self, state, color):
+        """
+        Méthode permettant d'obtenir la valeur utilitaire de
+        l'état de jeu 'state' en fonction des paramètres désirés.
+        :returns: int
+        """
+        return self.getMaterialValue(state, color)
+
+    def getMaterialValue(self, state, color):
+        """
+        Méthode qui retourne la valeur matériel pour le joueur
+        'color'.
+        :returns: int
+        """
+        return sum(self.pawnValue[piece] for piece in state[color].values())
+
     def displayLegalMoves(self, state):
         for color, positions in state.items():
             print(f"{color}:")
@@ -300,6 +360,3 @@ class chess:
                 legalMoves = ', '.join(str(move) for move in self.moveGenerator(state, color, position))
                 legalKills = ', '.join(str(attack) for attack in self.killGenerator(state, color, position))
                 print(f"{piece}: {position} → Moves: {legalMoves} Attacks: {legalKills}")
-
-jeu = chess()
-print(jeu)
