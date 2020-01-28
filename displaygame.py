@@ -50,7 +50,7 @@ class display(chess):
         # Fonctions anonymes pour les positions
         self.windowToBoard = lambda position: (position[0]//self.squareX+1, 8-position[1]//self.squareY)
         self.boardToWindow = lambda position: ((position[0]-1)*self.squareX, self.screenHeight - (position[1])*self.squareY)
-        self.getPos = lambda positions: list(tail(2, positions))
+        self.getLastPositions = lambda positions: list(tail(2, positions))
         self.scaleX = lambda index: self.screenWidth + (index // 3) * ((self.screenWidth // 8) // 3)
         self.scaleY = lambda index: (index % 4) * ((self.screenHeight // 8) // 3) + (self.screenHeight // 8) // 10
 
@@ -117,7 +117,7 @@ while running:
             partie.isClicked('showMove', event.pos)
             partie.boardClickPosition.append(mouseClick)
             try:
-                pos1, pos2 = partie.getPos(partie.boardClickPosition)
+                pos1, pos2 = partie.getLastPositions(partie.boardClickPosition)
                 partie.getMove('white', pos1, pos2)
                 partie.moveSound.play()
             except ChessError:
