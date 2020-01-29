@@ -51,8 +51,8 @@ class display(chess):
         self.windowToBoard = lambda position: (position[0]//self.squareX+1, 8-position[1]//self.squareY)
         self.boardToWindow = lambda position: ((position[0]-1)*self.squareX, self.boardHeight - (position[1])*self.squareY)
         self.getLastPositions = lambda positions: list(tail(2, positions))
-        self.scaleX = lambda index: self.boardWidth + (index // 5) * ((self.boardWidth // 8) // 3)
-        self.scaleY = lambda index: (index % 5) * ((self.boardHeight // 8) // 3) + (self.boardHeight // 8) // 10
+        self.scaleX = lambda index: self.boardWidth + (index // 6) * ((self.boardWidth // 8) // 3)
+        self.scaleY = lambda index, color: (index % 6) * ((self.boardHeight // 8) // 3) + self.colorPosition[color]
 
         # Boolean values
         self.showMove = True
@@ -61,6 +61,9 @@ class display(chess):
         # Importation de sons
         self.moveSound = pygame.mixer.Sound("moveSound.wav")
         self.buttonSound = pygame.mixer.Sound("switchSound.wav")
+
+        # Placements des pions mangés par couleur
+        self.colorPosition = {'black':0, 'white':(self.boardHeight // 8)*6}
 
     def redrawScreen(self, screen):
         """
@@ -91,7 +94,7 @@ class display(chess):
         for color, pions in self.pawnKilled.items():
             for i, pion in enumerate(pions):
                 pawnScaled = pygame.transform.scale(self.pieces[color][pion], (self.squareX//3, self.squareY//3))
-                screen.blit(pawnScaled, (self.scaleX(i), self.scaleY(i)))
+                screen.blit(pawnScaled, (self.scaleX(i), self.scaleY(i, color)))
 
         pygame.display.update()
 

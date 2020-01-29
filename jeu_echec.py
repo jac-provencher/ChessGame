@@ -309,7 +309,7 @@ class chess:
             maxEval = -self.infinity
             bestMove = None
             for position in state[color]:
-                possibleMoves = chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position))
+                possibleMoves = chain(self.killGenerator(state, color, position), self.moveGenerator(state, color, position))
                 for move in possibleMoves:
                     temportaryState = self.simulateState(state, color, position, move)
                     bestReply = self.minimax(depth-1, temportaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
@@ -325,7 +325,7 @@ class chess:
             minEval = self.infinity
             bestMove = None
             for position in state[color]:
-                possibleMoves = chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position))
+                possibleMoves = chain(self.killGenerator(state, color, position), self.moveGenerator(state, color, position))
                 for move in possibleMoves:
                     temportaryState = self.simulateState(state, color, position, move)
                     bestReply = self.minimax(depth-1, temportaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
