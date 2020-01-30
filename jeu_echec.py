@@ -2,7 +2,6 @@ from copy import deepcopy
 from sys import getsizeof
 from itertools import chain, takewhile
 from more_itertools import first_true
-from random import choice
 
 """
 TODO LIST:
@@ -14,7 +13,7 @@ TODO LIST:
 (6) Apprendre à travailler avec les files (pour avoir un historique des coups joués)
 (7) Voir si possible d'implanter la sous-promotion
 (8) OK Faire un affichage avec pygame
-(9) Faire algorithme minimax
+(9) OK Faire algorithme minimax
 """
 
 class ChessError(Exception):
@@ -343,7 +342,8 @@ class chess:
         l'état de jeu 'state' en fonction des paramètres désirés.
         :returns: int
         """
-        return self.getMaterialValue(state, color)
+        materialDifference = self.getMaterialValue(state, color) - self.getMaterialValue(state, self.oppo[color])
+        return materialDifference
 
     def getMaterialValue(self, state, color):
         """

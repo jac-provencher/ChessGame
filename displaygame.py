@@ -19,27 +19,27 @@ class display(chess):
         self.screen.fill((104, 103, 98))
 
         # Images
-        self.board = pygame.image.load("board.png")
-        self.contour = pygame.image.load("contour.png")
-        self.circle = pygame.image.load("circle.png")
+        self.board = pygame.image.load("images/board.png")
+        self.contour = pygame.image.load("images/contour.png")
+        self.circle = pygame.image.load("images/circle.png")
         self.pieces = {
         'black':
         {
-        'P': pygame.image.load("pion_noir.png"),
-        'T': pygame.image.load("tour_noir.png"),
-        'F': pygame.image.load("fou_noir.png"),
-        'Q': pygame.image.load("reine_noir.png"),
-        'K': pygame.image.load("roi_noir.png"),
-        'C': pygame.image.load("cheval_noir.png")
+        'P': pygame.image.load("images/pion_noir.png"),
+        'T': pygame.image.load("images/tour_noir.png"),
+        'F': pygame.image.load("images/fou_noir.png"),
+        'Q': pygame.image.load("images/reine_noir.png"),
+        'K': pygame.image.load("images/roi_noir.png"),
+        'C': pygame.image.load("images/cheval_noir.png")
         },
         'white':
         {
-        'P': pygame.image.load("pion_blanc.png"),
-        'T': pygame.image.load("tour_blanc.png"),
-        'F': pygame.image.load("fou_blanc.png"),
-        'Q': pygame.image.load("reine_blanc.png"),
-        'K': pygame.image.load("roi_blanc.png"),
-        'C': pygame.image.load("cheval_blanc.png")
+        'P': pygame.image.load("images/pion_blanc.png"),
+        'T': pygame.image.load("images/tour_blanc.png"),
+        'F': pygame.image.load("images/fou_blanc.png"),
+        'Q': pygame.image.load("images/reine_blanc.png"),
+        'K': pygame.image.load("images/roi_blanc.png"),
+        'C': pygame.image.load("images/cheval_blanc.png")
         }
         }
 
@@ -56,11 +56,11 @@ class display(chess):
 
         # Boolean values
         self.showMove = True
-        self.button = {True: pygame.image.load("on.png"), False: pygame.image.load("off.png")}
+        self.button = {True: pygame.image.load("images/on.png"), False: pygame.image.load("images/off.png")}
 
         # Importation de sons
-        self.moveSound = pygame.mixer.Sound("moveSound.wav")
-        self.buttonSound = pygame.mixer.Sound("switchSound.wav")
+        self.moveSound = pygame.mixer.Sound("sons/moveSound.wav")
+        self.buttonSound = pygame.mixer.Sound("sons/switchSound.wav")
 
         # Placements des pions mangés par couleur
         self.colorPosition = {'black':0, 'white':(self.boardHeight // 8)*6}
