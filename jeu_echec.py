@@ -251,10 +251,7 @@ class chess:
         oppoTargets = map(lambda position: self.killGenerator(state, color, position), state[self.oppo[color]])
         for position, piece in state[color].items():
             if piece == 'K':
-                if position in oppoTargets:
-                    return True
-                break
-        return False
+                return True if position in oppoTargets else False
 
     def pawnPromotion(self, state, color):
         """
