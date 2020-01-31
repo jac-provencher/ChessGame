@@ -248,7 +248,7 @@ class chess:
         Vérifie si un des roi est en échec.
         Retourne un bool
         """
-        oppoTargets = (move for position in state[self.oppo[color]] for move in self.killGenerator(state, self.oppo[color], position))
+        oppoTargets = map(lambda position: self.killGenerator(state, color, position), state[self.oppo[color]])
         for position, piece in state[color].items():
             if piece == 'K':
                 if position in oppoTargets:
@@ -302,16 +302,15 @@ class chess:
         :returns: (value, position)
         """
         if depth == 0 or self.isCheckmate(state, color):
-            return -self.staticEvaluation(state, color), None
+            return (-1 if not isMaximizing else 1)*self.staticEvaluation(state, color), None
 
         elif isMaximizing:
-            maxEval = -self.infinity
-            bestMove = None
+            maxEval, bestMove = -self.infinity, None
             for position in state[color]:
                 possibleMoves = chain(self.killGenerator(state, color, position), self.moveGenerator(state, color, position))
                 for move in possibleMoves:
-                    temportaryState = self.simulateState(state, color, position, move)
-                    bestReply = self.minimax(depth-1, temportaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
+                    temporaryState = self.simulateState(state, color, position, move)
+                    bestReply = self.minimax(depth-1, temporaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
                     if bestReply > maxEval:
                         maxEval, bestMove = bestReply, (position, move)
                     alpha = max(alpha, maxEval)
@@ -321,13 +320,12 @@ class chess:
             return maxEval, bestMove
 
         else:
-            minEval = self.infinity
-            bestMove = None
+            minEval, bestMove = self.infinity, None
             for position in state[color]:
                 possibleMoves = chain(self.killGenerator(state, color, position), self.moveGenerator(state, color, position))
                 for move in possibleMoves:
-                    temportaryState = self.simulateState(state, color, position, move)
-                    bestReply = self.minimax(depth-1, temportaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
+                    temporaryState = self.simulateState(state, color, position, move)
+                    bestReply = self.minimax(depth-1, temporaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
                     if bestReply < minEval:
                         minEval, bestMove = bestReply, (position, move)
                     beta = min(beta, minEval)
@@ -352,11 +350,3 @@ class chess:
         :returns: int
         """
         return sum(self.pawnValue[piece] for piece in state[color].values())
-
-    def displayLegalMoves(self, state):
-        for color, positions in state.items():
-            print(f"{color}:")
-            for position, piece in positions.items():
-                legalMoves = ', '.join(str(move) for move in self.moveGenerator(state, color, position))
-                legalKills = ', '.join(str(attack) for attack in self.killGenerator(state, color, position))
-                print(f"{piece}: {position} → Moves: {legalMoves} Attacks: {legalKills}")
