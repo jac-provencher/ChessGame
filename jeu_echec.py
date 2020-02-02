@@ -159,10 +159,10 @@ class chess:
         # Pions longues portées
         else:
             isPawn = lambda position: position in self.pawnPositions(state)
-            for direction in self.moveBank(position, piece):
-                if attack := first_true(direction, default=False, pred=isPawn):
-                    if attack in oppoPawnPositions:
-                        yield attack
+            attacks = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(position, piece))
+            legalAttacks = filter(lambda attack: attack in oppoPawnPositions, attacks)
+            for attack in legalAttacks:
+                yield attack
 
     def isCastling(self, state, color):
         """
