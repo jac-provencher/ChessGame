@@ -160,9 +160,9 @@ class chess:
         else:
             isPawn = lambda position: position in self.pawnPositions(state)
             attacks = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(position, piece))
-            legalAttacks = filter(lambda attack: attack in oppoPawnPositions, attacks)
-            for attack in legalAttacks:
-                yield attack
+            for attack in attacks:
+                if attack in oppoPawnPositions:
+                    yield attack
 
     def isCastling(self, state, color):
         """
@@ -259,13 +259,10 @@ class chess:
         if not self.isCheck(state, color):
             return False
 
-        for position in state[color]:
-            for move in chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position)):
-                temporaryState = self.simulateState(state, color, position, move)
-                if not self.isCheck(temporaryState, color):
-                    return False
+        canMove = bool(flatten(map(lambda position: chain(self.moveGenerator(state, color, position),
+        self.killGenerator(state, color, position)), state[color])))
 
-        return f"Le gagnant est le joueur {self.oppo[color]}!"
+        return False if canMove else f"Le gagnant est le joueur {self.oppo[color]}!"
 
     def isCheck(self, state, color):
         """
@@ -374,3 +371,6 @@ class chess:
         :returns: int
         """
         return sum(self.pawnValue[piece] for piece in state[color].values())
+
+a = chess()
+print(a.isCheckmate(a.etat, 'white'))
