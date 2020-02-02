@@ -42,6 +42,7 @@ class display(chess):
         'C': pygame.image.load("images/cheval_blanc.png")
         }
         }
+        self.button = {True: pygame.image.load("images/on.png"), False: pygame.image.load("images/off.png")}
 
         # Suivi des clicks
         self.boardClickPosition = [(0, 0), (0, 0)]
@@ -56,14 +57,13 @@ class display(chess):
 
         # Boolean values
         self.showMove = True
-        self.button = {True: pygame.image.load("images/on.png"), False: pygame.image.load("images/off.png")}
 
         # Importation de sons
         self.moveSound = pygame.mixer.Sound("sons/moveSound.wav")
         self.buttonSound = pygame.mixer.Sound("sons/switchSound.wav")
 
         # Placements des pions mangés par couleur
-        self.colorPosition = {'black':0, 'white':(self.boardHeight // 8)*6}
+        self.colorPosition = {'black': 0, 'white': (self.boardHeight // 8)*6}
 
     def redrawScreen(self, screen):
         """
@@ -98,11 +98,10 @@ class display(chess):
 
         pygame.display.update()
 
-    def isClicked(self, button, clickPosition):
+    def isClicked(self, clickPosition):
         x, y = clickPosition
-        middleY, dy = self.boardHeight/2, 59/2
         booleanDico = {
-        'showMove': self.boardWidth <= x <= self.boardWidth + self.dx and middleY - dy <= y <= middleY + dy
+        'showMove': self.boardWidth <= x <= self.boardWidth + self.dx and self.boardHeight/2 - 59/2 <= y <= self.boardHeight/2 + 59/2,
         }
         if booleanDico['showMove']:
             self.showMove = not self.showMove
@@ -120,7 +119,7 @@ while running:
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouseClick = partie.windowToBoard(event.pos)
-            partie.isClicked('showMove', event.pos)
+            partie.isClicked(event.pos)
             partie.boardClickPosition.append(mouseClick)
             try:
                 pos1, pos2 = partie.getLastPositions(partie.boardClickPosition)
@@ -131,6 +130,7 @@ while running:
                 continue
             else:
                 turn = 'black'
+
             if turn == 'black':
                 partie.autoplay('black')
                 turn = 'white'

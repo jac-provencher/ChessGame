@@ -1,7 +1,7 @@
 from copy import deepcopy
 from sys import getsizeof
 from itertools import chain, takewhile
-from more_itertools import first_true
+from more_itertools import first_true, flatten
 
 """
 TODO LIST:
@@ -14,6 +14,7 @@ TODO LIST:
 (7) Voir si possible d'implanter la sous-promotion
 (8) OK Faire un affichage avec pygame
 (9) OK Faire algorithme minimax
+(10) Implanter le roque
 """
 
 class ChessError(Exception):
@@ -44,13 +45,15 @@ class chess:
         }
         self.pawnValue = {'P':10, 'C':30, 'F':30, 'T':50, 'Q':90, 'K':1000}
         self.oppo = {'black':'white', 'white':'black'}
-        self.pawnKilled = {'black':[], 'white':[]}
+        self.pawnKilled = {'black': [], 'white': []}
         self.startingLine = {'black': 7, 'white': 2}
         self.endingLine = {'black': 1, 'white': 8}
         self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1, 9))
         self.onBoard = lambda position: 1 <= position[0] <= 8 and 1 <= position[1] <= 8
         self.pawnPositions = lambda state: chain(state['black'], state['white'])
         self.infinity = 999_999_999
+        self.petitRoque = False
+        self.grandRoque = False
 
     def __str__(self):
         """Retourne une représentation en ASCII du board"""
@@ -102,27 +105,30 @@ class chess:
         Méthode qui génère les déplacement légals pour la position demandée
         """
         isValidPosition = lambda position: position not in self.pawnPositions(state) and self.onBoard(position)
+        notCheck = lambda move: not self.isCheck(self.simulateState(state, color, position, move), color)
         piece = state[color][position]
 
         # Pions portés fixes
         if piece in ('K', 'C'):
             freeSpots = set(self.boardPositions()) - set(self.pawnPositions(state))
-            legalMoves = freeSpots & set(self.moveBank(position, piece))
+            legalMoves = filter(notCheck, freeSpots & set(self.moveBank(position, piece)))
             for move in legalMoves:
                 yield move
+
         # Pions
         elif piece == 'P':
             x, y = position
             deplacements = ((x, y+1), (x, y+2)) if color == 'white' else ((x, y-1), (x, y-2))
             if y == self.startingLine[color]:
-                legalMoves = takewhile(isValidPosition, deplacements)
+                legalMoves = filter(notCheck, takewhile(isValidPosition, deplacements))
                 for move in legalMoves:
                     yield move
-            elif isValidPosition(move := deplacements[0]):
+            elif isValidPosition(move := deplacements[0]) and notCheck(deplacements[0]):
                     yield move
+
         # Pions longues portées
         else:
-            legalMoves = map(lambda direction: takewhile(isValidPosition, direction), self.moveBank(position, piece))
+            legalMoves = map(lambda direction: filter(notCheck, takewhile(isValidPosition, direction)), self.moveBank(position, piece))
             for moves in legalMoves:
                 for move in moves:
                     yield move
@@ -132,14 +138,16 @@ class chess:
         Méthode qui génère les attaques possibles pour la
         position demandée selon le state donné
         """
+        notCheck = lambda attack: not self.isCheck(self.simulateState(state, color, position, attack), color)
         piece = state[color][position]
-        oppoPawnPositions = state[self.oppo[color]].keys()
+        oppoPawnPositions = state[self.oppo[color]]
 
         # Pions portés fixes
         if piece in ('K', 'C'):
-            if attacks := set(oppoPawnPositions) & set(self.moveBank(position, piece)):
+            if attacks := filter(notCheck, set(oppoPawnPositions) & set(self.moveBank(position, piece))):
                 for attack in attacks:
                     yield attack
+
         # Pions
         elif piece == 'P':
             x, y = position
@@ -147,6 +155,7 @@ class chess:
             for attack in legalAttacks:
                 if attack in oppoPawnPositions:
                     yield attack
+
         # Pions longues portées
         else:
             isPawn = lambda position: position in self.pawnPositions(state)
@@ -154,6 +163,21 @@ class chess:
                 if attack := first_true(direction, default=False, pred=isPawn):
                     if attack in oppoPawnPositions:
                         yield attack
+
+    def isCastling(self, state, color):
+        """
+        Méthode qui vérifie si le roque est possible
+        selon l'état 'state' pour la couleur 'color'.
+        :returns: bool
+
+        Conditions pour roquer:
+        - Ni le roi, ni la tour n'ont été déplacé.
+        - Aucun pion ne doit se trouver entre le roi et la tour.
+        - Aucunes des cases entre le roi et la tour ne doivent être menacés par l'adversaire.
+        - Le roi n'est pas échec.
+        - La position finale du roi ne le mettrait pas en échec.
+        """
+        pass
 
     def movePiece(self, color, pos1, pos2):
         """
@@ -248,7 +272,7 @@ class chess:
         Vérifie si un des roi est en échec.
         Retourne un bool
         """
-        oppoTargets = map(lambda position: self.killGenerator(state, color, position), state[self.oppo[color]])
+        oppoTargets = flatten(map(lambda position: self.killGenerator(state, self.oppo[color], position), state[self.oppo[color]]))
         for position, piece in state[color].items():
             if piece == 'K':
                 return True if position in oppoTargets else False
@@ -284,7 +308,7 @@ class chess:
         Méthode qui joue un coup automatiquement
         pour les pions 'color'
         """
-        pos1, pos2 = self.minimax(3, self.etat, color, -self.infinity, self.infinity, True)[1]
+        pos1, pos2 = self.minimax(2, self.etat, color, -self.infinity, self.infinity, True)[1]
 
         # Appel de la bonne méthode
         if pos2 in self.etat[self.oppo[color]]:
@@ -292,9 +316,11 @@ class chess:
         else:
             self.movePiece(color, pos1, pos2)
 
+        return pos1, pos2
+
     def minimax(self, depth, state, color, alpha, beta,  isMaximizing):
         """
-        Méthode permettant de chercher, dans l'arbre de récursion,
+        Méthode permettant de chercher, à partir de l'arbre de récursion,
         le coup le plus avantageux pour le joueur 'color'.
         :returns: (value, position)
         """
@@ -338,6 +364,7 @@ class chess:
         :returns: int
         """
         materialDifference = self.getMaterialValue(state, color) - self.getMaterialValue(state, self.oppo[color])
+
         return materialDifference
 
     def getMaterialValue(self, state, color):
