@@ -139,6 +139,7 @@ class chess:
         position demandée selon le state donné
         """
         notCheck = lambda attack: not self.isCheck(self.simulateState(state, color, position, attack), color)
+        legalKill = lambda attack: attack in oppoPawnPositions and notCheck(attack)
         piece = state[color][position]
         oppoPawnPositions = state[self.oppo[color]]
 
@@ -151,18 +152,16 @@ class chess:
         # Pions
         elif piece == 'P':
             x, y = position
-            legalAttacks = ((x+1, y+1), (x-1, y+1)) if color == 'white' else ((x+1, y-1), (x-1, y-1))
-            for attack in legalAttacks:
-                if attack in oppoPawnPositions:
-                    yield attack
+            attacks = ((x+1, y+1), (x-1, y+1)) if color == 'white' else ((x+1, y-1), (x-1, y-1))
+            for attack in filter(legalKill, attacks):
+                yield attack
 
         # Pions longues portées
         else:
             isPawn = lambda position: position in self.pawnPositions(state)
-            attacks = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(position, piece))
+            attacks = filter(legalKill, map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(position, piece)))
             for attack in attacks:
-                if attack in oppoPawnPositions:
-                    yield attack
+                yield attack
 
     def isCastling(self, state, color):
         """
@@ -256,13 +255,10 @@ class chess:
         Retourne le gagnant si oui,
         False autrement.
         """
-        if not self.isCheck(state, color):
-            return False
+        everyMove = lambda position: chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position))
+        canMove = tuple(flatten(map(everyMove, state[color])))
 
-        canMove = bool(flatten(map(lambda position: chain(self.moveGenerator(state, color, position),
-        self.killGenerator(state, color, position)), state[color])))
-
-        return False if canMove else f"Le gagnant est le joueur {self.oppo[color]}!"
+        return False if not self.isCheck(state, color) or canMove else f"Le gagnant est le joueur {self.oppo[color]}!"
 
     def isCheck(self, state, color):
         """
@@ -305,7 +301,7 @@ class chess:
         Méthode qui joue un coup automatiquement
         pour les pions 'color'
         """
-        pos1, pos2 = self.minimax(2, self.etat, color, -self.infinity, self.infinity, True)[1]
+        pos1, pos2 = self.minimax(1, self.etat, color, -self.infinity, self.infinity, True)[1]
 
         # Appel de la bonne méthode
         if pos2 in self.etat[self.oppo[color]]:
@@ -373,4 +369,5 @@ class chess:
         return sum(self.pawnValue[piece] for piece in state[color].values())
 
 a = chess()
+print(a)
 print(a.isCheckmate(a.etat, 'white'))

@@ -139,8 +139,6 @@ while running:
 
     partie.redrawScreen(partie.screen)
 
-    print(partie)
-    print(partie.isCheck(partie.etat, 'white'))
     print(partie.isCheckmate(partie.etat, 'white'))
 
 pygame.quit()
