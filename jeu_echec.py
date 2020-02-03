@@ -27,16 +27,16 @@ class chess:
         'black':
         {
         (1, 7): 'P', (3, 7): 'P', (4, 7): 'P', (2, 7): 'P',
-        (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
-        (1, 8): 'T', (8, 8): 'T', (7, 8): 'C', (2, 8): 'C',
-        (3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
+        (5, 5): 'P', (7, 7): 'P', (8, 7): 'P',
+        (1, 8): 'T', (8, 8): 'T', (7, 8): 'C', (3, 6): 'C',
+        (3, 8): 'F', (3, 5): 'F', (5, 8): 'K', (4, 8): 'Q'
         },
         'white':
         {
         (1, 2): 'P', (2, 2): 'P', (3, 2): 'P', (4, 2): 'P',
-        (5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 2): 'P',
+        (5, 4): 'P', (6, 2): 'P', (7, 2): 'P', (8, 2): 'P',
         (1, 1): 'T', (8, 1): 'T', (2, 1): 'C', (7, 1): 'C',
-        (3, 1): 'F', (6, 1): 'F', (5, 1): 'K', (4, 1): 'Q'
+        (3, 1): 'F', (3, 4): 'F', (5, 1): 'K', (6, 7): 'Q'
         }
         }
         self.uniCode = {
@@ -139,7 +139,6 @@ class chess:
         position demandée selon le state donné
         """
         notCheck = lambda attack: not self.isCheck(self.simulateState(state, color, position, attack), color)
-        legalKill = lambda attack: attack in oppoPawnPositions and notCheck(attack)
         piece = state[color][position]
         oppoPawnPositions = state[self.oppo[color]]
 
@@ -153,15 +152,17 @@ class chess:
         elif piece == 'P':
             x, y = position
             attacks = ((x+1, y+1), (x-1, y+1)) if color == 'white' else ((x+1, y-1), (x-1, y-1))
-            for attack in filter(legalKill, attacks):
-                yield attack
+            for attack in attacks:
+                if attack in oppoPawnPositions:
+                    yield attack
 
         # Pions longues portées
         else:
             isPawn = lambda position: position in self.pawnPositions(state)
-            attacks = filter(legalKill, map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(position, piece)))
+            attacks = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(position, piece))
             for attack in attacks:
-                yield attack
+                if attack in oppoPawnPositions:
+                    yield attack
 
     def isCastling(self, state, color):
         """
@@ -256,9 +257,9 @@ class chess:
         False autrement.
         """
         everyMove = lambda position: chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position))
-        canMove = tuple(flatten(map(everyMove, state[color])))
+        canMove = list(flatten(map(everyMove, state[color])))
 
-        return False if not self.isCheck(state, color) or canMove else f"Le gagnant est le joueur {self.oppo[color]}!"
+        return False if not self.isCheck(state, color) or bool(canMove) else f"Le gagnant est le joueur {self.oppo[color]}!"
 
     def isCheck(self, state, color):
         """
@@ -370,4 +371,4 @@ class chess:
 
 a = chess()
 print(a)
-print(a.isCheckmate(a.etat, 'white'))
+print(a.isCheckmate(a.etat, 'black'))
