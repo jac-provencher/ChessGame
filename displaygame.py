@@ -138,5 +138,6 @@ while running:
     partie.cursorPosition = partie.windowToBoard(pygame.mouse.get_pos())
 
     partie.redrawScreen(partie.screen)
+    print(partie)
 
 pygame.quit()

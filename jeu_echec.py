@@ -16,7 +16,7 @@ TODO LIST:
 (9) OK Faire algorithme minimax
 (10) Implanter le roque
 
-(11) Arranger killGenerator
+(11) OK Arranger killGenerator
 PROBLÈME: killGenerator a besoin de isCheck, mais isCheck a besoin de killGenerator
 
 SOLUTION: (on modifiera la méthode isCheck, ce qui nous permettra d'utiliser filter(notCheck))
@@ -152,12 +152,13 @@ class chess:
         Méthode qui génère les attaques possibles pour la
         position demandée selon le state donné
         """
+        notCheck = lambda attack: not self.isCheck(self.simulateState(state, color, position, attack), color)
         piece = state[color][position]
         oppoPawnPositions = state[self.oppo[color]]
 
         # Pions portés fixes
         if piece in ('K', 'C'):
-            if attacks := set(oppoPawnPositions) & set(self.moveBank(position, piece)):
+            if attacks := filter(notCheck, set(oppoPawnPositions) & set(self.moveBank(position, piece))):
                 for attack in attacks:
                     yield attack
 
@@ -166,7 +167,7 @@ class chess:
             x, y = position
             attacks = ((x+1, y+1), (x-1, y+1)) if color == 'white' else ((x+1, y-1), (x-1, y-1))
             for attack in attacks:
-                if attack in oppoPawnPositions:
+                if attack in oppoPawnPositions and notCheck(attack):
                     yield attack
 
         # Pions longues portées
@@ -174,7 +175,7 @@ class chess:
             isPawn = lambda position: position in self.pawnPositions(state)
             attacks = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(position, piece))
             for attack in attacks:
-                if attack in oppoPawnPositions:
+                if attack in oppoPawnPositions and notCheck(attack):
                     yield attack
 
     def isCastling(self, state, color):
@@ -269,20 +270,57 @@ class chess:
         Retourne le gagnant si oui,
         False autrement.
         """
-        canMove = flatten(map(lambda position:
-        chain(self.moveGenerator(state, color, position), self.killGenerator(state, color, position)), state[color]))
+        if not self.isCheck(state, color):
+            return False
 
-        return False if not self.isCheck(state, color) or any(canMove) else f"Le gagnant est le joueur {self.oppo[color]}!"
+        canMove = flatten(map(
+        lambda position:chain(
+        self.moveGenerator(state, color, position),
+        self.killGenerator(state, color, position)
+        ), state[color]))
+
+        return False if any(canMove) else f"Le gagnant est le joueur {self.oppo[color]}!"
 
     def isCheck(self, state, color):
         """
         Vérifie si un des roi est en échec.
         Retourne un bool
         """
-        oppoTargets = flatten(map(lambda position: self.killGenerator(state, self.oppo[color], position), state[self.oppo[color]]))
         for position, piece in state[color].items():
             if piece == 'K':
-                return True if position in oppoTargets else False
+                kingPosition = position
+
+        isPawn = lambda position: position in self.pawnPositions(state)
+
+        # Direction en x
+        pionsFound = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(kingPosition, 'F'))
+        for position in pionsFound:
+            if position in state[self.oppo[color]]:
+                if state[self.oppo[color]][position] in ('F', 'Q'):
+                    return True
+
+        # Direction en +
+        pionsFound = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(kingPosition, 'T'))
+        for position in pionsFound:
+            if position in state[self.oppo[color]]:
+                if state[self.oppo[color]][position] in ('T', 'Q'):
+                    return True
+
+        # Pour le cavalier
+        pionsFound = set(state[self.oppo[color]]) & set(self.moveBank(kingPosition, 'C'))
+        for position in pionsFound:
+            if state[self.oppo[color]][position] == 'C':
+                return True
+
+        # Pour le pion
+        x, y = kingPosition
+        dy = +1 if color == 'white' else -1
+        for position in ((x+1, y+dy), (x-1, y+dy)):
+            if position in state[self.oppo[color]]:
+                if state[self.oppo[color]][position] == 'P':
+                    return True
+
+        return False
 
     def pawnPromotion(self, state, color):
         """
@@ -382,4 +420,4 @@ class chess:
 
 a = chess()
 print(a)
-print(a.isCheckmate(a.etat, 'black'))
+print(a.isCheck(a.etat, 'white'))
