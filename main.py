@@ -14,3 +14,7 @@ coupBerger = {
         (3, 1): 'F', (3, 4): 'F', (5, 1): 'K', (6, 7): 'Q'
         }
         }
+
+def test(n):
+        if n > 0:
+                return n

@@ -15,6 +15,20 @@ TODO LIST:
 (8) OK Faire un affichage avec pygame
 (9) OK Faire algorithme minimax
 (10) Implanter le roque
+
+(11) Arranger killGenerator
+PROBLÈME: killGenerator a besoin de isCheck, mais isCheck a besoin de killGenerator
+
+SOLUTION: (on modifiera la méthode isCheck, ce qui nous permettra d'utiliser filter(notCheck))
+À partir de la position du roi, on vérifie un pion adverse peut nous manger.
+
+Par exemple, pour savoir si un fou ou une dame met notre roi en échec,
+on loop à partir de la position du roi dans les quatres directions en X et
+on vérifie si on croise une dame ou un fou. Si oui, le roi est en échec.
+
+On répète ce processus pour tous les types de pions restants.
+
+Si aucun pion n'est croisé, le roi n'est pas en échec
 """
 
 class ChessError(Exception):
@@ -138,13 +152,12 @@ class chess:
         Méthode qui génère les attaques possibles pour la
         position demandée selon le state donné
         """
-        notCheck = lambda attack: not self.isCheck(self.simulateState(state, color, position, attack), color)
         piece = state[color][position]
         oppoPawnPositions = state[self.oppo[color]]
 
         # Pions portés fixes
         if piece in ('K', 'C'):
-            if attacks := filter(notCheck, set(oppoPawnPositions) & set(self.moveBank(position, piece))):
+            if attacks := set(oppoPawnPositions) & set(self.moveBank(position, piece)):
                 for attack in attacks:
                     yield attack
 
