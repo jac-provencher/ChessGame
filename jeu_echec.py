@@ -41,14 +41,14 @@ class chess:
         'black':
         {
         (1, 7): 'P', (2, 7): 'P', (3, 7): 'P', (4, 7): 'P',
-        (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
-        (1, 8): 'T', (8, 8): 'T', (7, 8): 'C', (2, 8): 'C',
+        (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 5): 'P',
+        (1, 8): 'T', (7, 8): 'C', (2, 8): 'C',
         (3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
         },
         'white':
         {
         (1, 2): 'P', (2, 2): 'P', (3, 2): 'P', (4, 2): 'P',
-        (5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 2): 'P',
+        (5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 7): 'P',
         (1, 1): 'T', (8, 1): 'T', (2, 1): 'C', (7, 1): 'C',
         (3, 1): 'F', (6, 1): 'F', (5, 1): 'K', (4, 1): 'Q'
         }
@@ -286,39 +286,33 @@ class chess:
         Vérifie si un des roi est en échec.
         Retourne un bool
         """
+        isPawn = lambda position: position in self.pawnPositions(state)
+        opponents = state[self.oppo[color]]
+
+        # get king's position
         for position, piece in state[color].items():
             if piece == 'K':
                 kingPosition = position
 
-        isPawn = lambda position: position in self.pawnPositions(state)
-
-        # Direction en x
-        pionsFound = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(kingPosition, 'F'))
-        for position in pionsFound:
-            if position in state[self.oppo[color]]:
-                if state[self.oppo[color]][position] in ('F', 'Q'):
-                    return True
-
-        # Direction en +
-        pionsFound = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(kingPosition, 'T'))
-        for position in pionsFound:
-            if position in state[self.oppo[color]]:
-                if state[self.oppo[color]][position] in ('T', 'Q'):
+        # Direction en x et en +
+        for pion in ('F', 'T'):
+            pionsFound = map(lambda direction: first_true(direction, default=False, pred=isPawn), self.moveBank(kingPosition, pion))
+            for position in pionsFound:
+                if opponents.get(position) in (pion, 'Q'):
                     return True
 
         # Pour le cavalier
-        pionsFound = set(state[self.oppo[color]]) & set(self.moveBank(kingPosition, 'C'))
+        pionsFound = set(opponents) & set(self.moveBank(kingPosition, 'C'))
         for position in pionsFound:
-            if state[self.oppo[color]][position] == 'C':
+            if opponents[position] == 'C':
                 return True
 
         # Pour le pion
         x, y = kingPosition
         dy = +1 if color == 'white' else -1
         for position in ((x+1, y+dy), (x-1, y+dy)):
-            if position in state[self.oppo[color]]:
-                if state[self.oppo[color]][position] == 'P':
-                    return True
+            if opponents.get(position) == 'P':
+                return True
 
         return False
 
@@ -330,7 +324,7 @@ class chess:
         """
         linePositions = ((x, self.endingLine[color]) for x in range(1, 9))
         for position in linePositions:
-            if position in state[color] and state[color][position] == 'P':
+            if state.get(color).get(position) == 'P':
                 return position
         return False
 

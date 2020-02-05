@@ -15,6 +15,8 @@ coupBerger = {
         }
         }
 
+print(bool(coupBerger.get('black').get((1, 10))))
+
 def test(n):
         if n > 0:
                 return n
