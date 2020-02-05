@@ -133,8 +133,8 @@ while running:
 
             if turn == 'black':
                 partie.autoplay('black')
-                print(partie)
                 turn = 'white'
+                print(partie)
 
     partie.cursorPosition = partie.windowToBoard(pygame.mouse.get_pos())
 

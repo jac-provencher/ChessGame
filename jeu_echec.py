@@ -1,5 +1,4 @@
 from copy import deepcopy
-from sys import getsizeof
 from itertools import chain, takewhile
 from more_itertools import first_true, flatten
 
@@ -41,14 +40,14 @@ class chess:
         'black':
         {
         (1, 7): 'P', (2, 7): 'P', (3, 7): 'P', (4, 7): 'P',
-        (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 5): 'P',
-        (1, 8): 'T', (7, 8): 'C', (2, 8): 'C',
+        (5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
+        (1, 8): 'T', (8, 8): 'T', (7, 8): 'C', (2, 8): 'C',
         (3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
         },
         'white':
         {
         (1, 2): 'P', (2, 2): 'P', (3, 2): 'P', (4, 2): 'P',
-        (5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 7): 'P',
+        (5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 2): 'P',
         (1, 1): 'T', (8, 1): 'T', (2, 1): 'C', (7, 1): 'C',
         (3, 1): 'F', (6, 1): 'F', (5, 1): 'K', (4, 1): 'Q'
         }
@@ -274,7 +273,7 @@ class chess:
             return False
 
         canMove = flatten(map(
-        lambda position:chain(
+        lambda position: chain(
         self.moveGenerator(state, color, position),
         self.killGenerator(state, color, position)
         ), state[color]))
@@ -415,3 +414,4 @@ class chess:
 a = chess()
 print(a)
 print(a.isCheck(a.etat, 'white'))
+print(a.isCheckmate(a.etat, 'white'))
