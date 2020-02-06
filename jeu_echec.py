@@ -1,6 +1,6 @@
 from copy import deepcopy
 from itertools import chain, takewhile
-from more_itertools import first_true, flatten
+from more_itertools import first_true, flatten, take, tail
 
 """
 TODO LIST:
@@ -56,6 +56,10 @@ class chess:
         'black': {'P': '♙', 'C': '♘', 'F': '♗', 'Q': '♕', 'K': '♔', 'T': '♖'},
         'white': {'P': '♟', 'C': '♞', 'F': '♝', 'Q': '♛', 'K': '♚', 'T': '♜'}
         }
+        self.vectors = {
+        'N': (0, 1), 'S': (0, -1), 'O': (-1, 0), 'E': (1, 0),
+        'NE': (1, 1), 'SE': (1, -1), 'SO': (-1, -1), 'NO': (-1, 1)
+        }
         self.pawnValue = {'P':10, 'C':30, 'F':30, 'T':50, 'Q':90, 'K':1000}
         self.oppo = {'black':'white', 'white':'black'}
         self.pawnKilled = {'black': [], 'white': []}
@@ -86,32 +90,15 @@ class chess:
         """
         x, y = position
         if piece == 'K':
-            return (
-            (x, y+1), (x, y-1), (x+1, y), (x-1, y),
-            (x+1, y+1), (x-1, y+1), (x+1, y-1), (x-1, y-1)
-            )
-        elif piece == 'C':
-            return (
-            (x+1, y+2), (x-1, y+2), (x+2, y+1), (x-2, y+1),
-            (x+2, y-1), (x-2, y-1), (x+1, y-2), (x-1, y-2)
-            )
+            return ((x+i, y+j) for i, j in self.vectors.values())
         elif piece == 'T':
-            return (
-            ((x+i, y) for i in range(1, 9)), ((x-i, y) for i in range(1, 9)),
-            ((x, y+i) for i in range(1, 9)), ((x, y-i) for i in range(1, 9))
-            )
+            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in take(4, self.vectors.values()))
         elif piece == 'Q':
-            return (
-            ((x, y+i) for i in range(1, 9)), ((x, y-i) for i in range(1, 9)),
-            ((x+i, y) for i in range(1, 9)), ((x-i, y) for i in range(1, 9)),
-            ((x+i, y+i) for i in range(1, 9)), ((x-i, y+i) for i in range(1, 9)),
-            ((x+i, y-i) for i in range(1, 9)), ((x-i, y-i) for i in range(1, 9))
-            )
+            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in self.vectors.values())
         elif piece == 'F':
-            return (
-            ((x+i, y+i) for i in range(1, 9)), ((x+i, y-i) for i in range(1, 9)),
-            ((x-i, y+i) for i in range(1, 9)), ((x-i, y-i) for i in range(1, 9))
-            )
+            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in tail(4, self.vectors.values()))
+        elif piece == 'C':
+            return ((x+1, y+2), (x-1, y+2), (x+2, y+1), (x-2, y+1), (x+2, y-1), (x-2, y-1), (x+1, y-2), (x-1, y-2))
 
     def moveGenerator(self, state, color, position):
         """
