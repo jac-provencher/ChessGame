@@ -1,6 +1,7 @@
 from copy import deepcopy
 from itertools import chain, takewhile
 from more_itertools import first_true, flatten, take, tail
+from functools import reduce
 from random import randint
 
 """
@@ -45,14 +46,11 @@ class chess:
         'white': {'P': '♟', 'C': '♞', 'F': '♝', 'Q': '♛', 'K': '♚', 'T': '♜'}
         }
         self.vectors = [(0, 1), (0, -1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-        self.pawnValue = {'P':10, 'C':30, 'F':30, 'T':50, 'Q':90, 'K':1000}
+        self.pawnValue = {'P': 10, 'C': 30, 'F': 30, 'T': 50, 'Q': 90, 'K': 1000}
         self.oppo = {'black':'white', 'white':'black'}
         self.pawnKilled = {'black': [], 'white': []}
         self.startingLine = {'black': 7, 'white': 2}
         self.endingLine = {'black': 1, 'white': 8}
-        self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1, 9))
-        self.onBoard = lambda position: 1 <= position[0] <= 8 and 1 <= position[1] <= 8
-        self.pawnPositions = lambda state: chain(state['black'], state['white'])
         self.infinity = 999_999_999_999
         self.pieces = ['BP', 'BQ', 'BK', 'BF', 'BT', 'BC', 'WP', 'WQ', 'WK', 'WF', 'WT', 'WC']
         self.colorDico = {'black': 'B', 'white': 'W'}
@@ -62,6 +60,9 @@ class chess:
         self.hits = 0
         self.petitRoque = False
         self.grandRoque = False
+        self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1, 9))
+        self.onBoard = lambda position: 1 <= position[0] <= 8 and 1 <= position[1] <= 8
+        self.pawnPositions = lambda state: chain(state['black'], state['white'])
 
     def __str__(self):
         """Retourne une représentation en ASCII du board"""
@@ -155,18 +156,16 @@ class chess:
                 if attack in oppoPawnPositions and notCheck(attack):
                     yield attack
 
-    def getZobristCode(self, state, color):
+    def getZobristCode(self, state, couleur):
         """
         Méthode permettant de générer un code unique
         pour l'état 'state' donné.
         :returns: int
         """
-        codes = [self.positionCodes[position][f"{self.colorDico[color]}"+piece] for color, pieces in state.items() for position, piece in pieces.items()]
-        stateCode = codes[0]
-        for code in codes[1:]:
-            stateCode ^= code
+        codes = [self.positionCodes[position][self.colorDico[color]+piece] for color, pieces in state.items() for position, piece in pieces.items()]
+        stateCode = reduce(lambda code1, code2: code1 ^ code2, codes)
 
-        return stateCode ^ self.turnCode[color]
+        return stateCode ^ self.turnCode[couleur]
 
     def isCastling(self, state, color):
         """
@@ -220,7 +219,7 @@ class chess:
 
     def getMove(self, color, pos1=None, pos2=None):
         """
-        Méthode qui prend le input de l'utilisateur
+        Méthode qui prend le input de l'utilisateur.
         Appel la méthode approprié selon le coup.
         """
         # Check l'input
@@ -236,7 +235,7 @@ class chess:
         """
         Méthode qui valide si le input rentrer
         par l'utilisateur est valide. Raise une
-        ChessError
+        ChessError si c'est un mauvais input.
         """
         if not isinstance(color, str):
             raise ChessError("La couleur doit être une chaine de caractère.")
@@ -355,7 +354,7 @@ class chess:
         if depth == 0 or self.isCheckmate(state, color):
             return (-1 if not isMaximizing else 1)*self.staticEvaluation(state, color), None
 
-        # Vérification si l'état 'state' a déjà été évalué (Si non, l'ajouter)
+        # Vérification si l'état 'state' a déjà été évalué
         stateCode = self.getZobristCode(state, color)
         if evaluation := self.transpositionTable.get(stateCode):
             self.hits += 1
