@@ -1,15 +1,31 @@
-from more_itertools import take, tail
-x, y = 2, 5
+from random import randint
+from sys import getsizeof
 
-vectors = {
-'N': (0, 1), 'S': (0, -1), 'O': (-1, 0), 'E': (1, 0),
-'NE': (1, 1), 'SE': (1, -1), 'SO': (-1, -1), 'NO': (-1, 1)
+etat = {
+'black':
+{
+(1, 7): 'P', (2, 7): 'P', (3, 7): 'P', (4, 7): 'P',
+(5, 7): 'P', (6, 7): 'P', (7, 7): 'P', (8, 7): 'P',
+(1, 8): 'T', (8, 8): 'T', (7, 8): 'C', (2, 8): 'C',
+(3, 8): 'F', (6, 8): 'F', (5, 8): 'K', (4, 8): 'Q'
+},
+'white':
+{
+(1, 2): 'P', (2, 2): 'P', (3, 2): 'P', (4, 2): 'P',
+(5, 2): 'P', (6, 2): 'P', (7, 2): 'P', (8, 2): 'P',
+(1, 1): 'T', (8, 1): 'T', (2, 1): 'C', (7, 1): 'C',
+(3, 1): 'F', (6, 1): 'F', (5, 1): 'K', (4, 1): 'Q'
 }
+}
+infinity = 999_999_999_999
+pieces = ['BP', 'BQ', 'BK', 'BF', 'BT', 'BC', 'WP', 'WQ', 'WK', 'WF', 'WT', 'WC']
+table = {(x, y): {piece: randint(0, infinity) for piece in pieces} for x in range(1, 9) for y in range(1, 9)}
+print(table)
+colorDico = {'black': 'B', 'white': 'W'}
 
-q = [[(x+i*n, y+j*n) for n in range(1, 9)] for i, j in vectors.values()]
-f = [[(x+i*n, y+j*n) for n in range(1, 9)] for i, j in tail(4, vectors.values())]
-t = [[(x+i*n, y+j*n) for n in range(1, 9)] for i, j in take(4, vectors.values())]
+nums = [table[position][f"{colorDico[color]}"+piece] for color, pieces in etat.items() for position, piece in pieces.items()]
+code = nums[0]
+for num in nums[1:]:
+    code ^= num
 
-print(q)
-print(f)
-print(t)
+print(code)

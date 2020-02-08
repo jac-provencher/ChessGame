@@ -1,12 +1,13 @@
 from copy import deepcopy
 from itertools import chain, takewhile
 from more_itertools import first_true, flatten, take, tail
+from random import randint
 
 """
 TODO LIST:
 (1) OK les méthodes isValidPosition, takeWhile et pawnPositions doivent pouvoir prendre en argument un etat de jeu
 (2) OK Faire les méthodes movePiece et killPiece
-(3) Trouver un moyen de simplifier moveBank
+(3) OK Trouver un moyen de simplifier moveBank
 (4) OK Faire isCheckmate
 (5) OK Faire isCheck
 (6) Apprendre à travailler avec les files (pour avoir un historique des coups joués)
@@ -14,20 +15,7 @@ TODO LIST:
 (8) OK Faire un affichage avec pygame
 (9) OK Faire algorithme minimax
 (10) Implanter le roque
-
 (11) OK Arranger killGenerator
-PROBLÈME: killGenerator a besoin de isCheck, mais isCheck a besoin de killGenerator
-
-SOLUTION: (on modifiera la méthode isCheck, ce qui nous permettra d'utiliser filter(notCheck))
-À partir de la position du roi, on vérifie un pion adverse peut nous manger.
-
-Par exemple, pour savoir si un fou ou une dame met notre roi en échec,
-on loop à partir de la position du roi dans les quatres directions en X et
-on vérifie si on croise une dame ou un fou. Si oui, le roi est en échec.
-
-On répète ce processus pour tous les types de pions restants.
-
-Si aucun pion n'est croisé, le roi n'est pas en échec
 """
 
 class ChessError(Exception):
@@ -56,10 +44,7 @@ class chess:
         'black': {'P': '♙', 'C': '♘', 'F': '♗', 'Q': '♕', 'K': '♔', 'T': '♖'},
         'white': {'P': '♟', 'C': '♞', 'F': '♝', 'Q': '♛', 'K': '♚', 'T': '♜'}
         }
-        self.vectors = {
-        'N': (0, 1), 'S': (0, -1), 'O': (-1, 0), 'E': (1, 0),
-        'NE': (1, 1), 'SE': (1, -1), 'SO': (-1, -1), 'NO': (-1, 1)
-        }
+        self.vectors = [(0, 1), (0, -1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
         self.pawnValue = {'P':10, 'C':30, 'F':30, 'T':50, 'Q':90, 'K':1000}
         self.oppo = {'black':'white', 'white':'black'}
         self.pawnKilled = {'black': [], 'white': []}
@@ -68,7 +53,13 @@ class chess:
         self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1, 9))
         self.onBoard = lambda position: 1 <= position[0] <= 8 and 1 <= position[1] <= 8
         self.pawnPositions = lambda state: chain(state['black'], state['white'])
-        self.infinity = 999_999_999
+        self.infinity = 999_999_999_999
+        self.pieces = ['BP', 'BQ', 'BK', 'BF', 'BT', 'BC', 'WP', 'WQ', 'WK', 'WF', 'WT', 'WC']
+        self.colorDico = {'black': 'B', 'white': 'W'}
+        self.turnCode = {'black': randint(0, self.infinity), 'white': randint(0, self.infinity)}
+        self.positionCodes = {(x, y): {piece: randint(0, self.infinity) for piece in self.pieces} for x in range(1, 9) for y in range(1, 9)}
+        self.transpositionTable = {}
+        self.hits = 0
         self.petitRoque = False
         self.grandRoque = False
 
@@ -90,13 +81,13 @@ class chess:
         """
         x, y = position
         if piece == 'K':
-            return ((x+i, y+j) for i, j in self.vectors.values())
+            return ((x+i, y+j) for i, j in self.vectors)
         elif piece == 'T':
-            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in take(4, self.vectors.values()))
+            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in take(4, self.vectors))
         elif piece == 'Q':
-            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in self.vectors.values())
+            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in self.vectors)
         elif piece == 'F':
-            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in tail(4, self.vectors.values()))
+            return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in tail(4, self.vectors))
         elif piece == 'C':
             return ((x+1, y+2), (x-1, y+2), (x+2, y+1), (x-2, y+1), (x+2, y-1), (x-2, y-1), (x+1, y-2), (x-1, y-2))
 
@@ -163,6 +154,19 @@ class chess:
             for attack in attacks:
                 if attack in oppoPawnPositions and notCheck(attack):
                     yield attack
+
+    def getZobristCode(self, state, color):
+        """
+        Méthode permettant de générer un code unique
+        pour l'état 'state' donné.
+        :returns: int
+        """
+        codes = [self.positionCodes[position][f"{self.colorDico[color]}"+piece] for color, pieces in state.items() for position, piece in pieces.items()]
+        stateCode = codes[0]
+        for code in codes[1:]:
+            stateCode ^= code
+
+        return stateCode ^ self.turnCode[color]
 
     def isCastling(self, state, color):
         """
@@ -333,7 +337,7 @@ class chess:
         Méthode qui joue un coup automatiquement
         pour les pions 'color'
         """
-        pos1, pos2 = self.minimax(2, self.etat, color, -self.infinity, self.infinity, True)[1]
+        pos1, pos2 = self.minimax(3, self.etat, color, -self.infinity, self.infinity, True)[1]
 
         # Appel de la bonne méthode
         if pos2 in self.etat[self.oppo[color]]:
@@ -347,36 +351,61 @@ class chess:
         le coup le plus avantageux pour le joueur 'color'.
         :returns: (value, position)
         """
+        # Critères d'arrêt
         if depth == 0 or self.isCheckmate(state, color):
             return (-1 if not isMaximizing else 1)*self.staticEvaluation(state, color), None
 
+        # Vérification si l'état 'state' a déjà été évalué (Si non, l'ajouter)
+        stateCode = self.getZobristCode(state, color)
+        if evaluation := self.transpositionTable.get(stateCode):
+            self.hits += 1
+            return evaluation[0], evaluation[1]
+
         elif isMaximizing:
             maxEval, bestMove = -self.infinity, None
+
             for position in state[color]:
                 possibleMoves = chain(self.killGenerator(state, color, position), self.moveGenerator(state, color, position))
                 for move in possibleMoves:
                     temporaryState = self.simulateState(state, color, position, move)
+
+                    # Maximisation du score
                     bestReply = self.minimax(depth-1, temporaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
                     if bestReply > maxEval:
                         maxEval, bestMove = bestReply, (position, move)
+
+                    # Alpha-beta pruning
                     alpha = max(alpha, maxEval)
                     if beta <= alpha:
                         return maxEval, bestMove
+
+                    # Ajout de l'évaluation à la table de transposition
+                    self.transpositionTable[stateCode] = (maxEval, bestMove)
 
             return maxEval, bestMove
 
         else:
             minEval, bestMove = self.infinity, None
+
             for position in state[color]:
                 possibleMoves = chain(self.killGenerator(state, color, position), self.moveGenerator(state, color, position))
                 for move in possibleMoves:
                     temporaryState = self.simulateState(state, color, position, move)
+                    stateCode = self.getZobristCode(temporaryState, color)
+                    self.transpositionTable[stateCode] = self.minimax(depth-1, temporaryState, self.oppo[color], alpha, beta, not isMaximizing)
+
+                    # Minimisation du score
                     bestReply = self.minimax(depth-1, temporaryState, self.oppo[color], alpha, beta, not isMaximizing)[0]
                     if bestReply < minEval:
                         minEval, bestMove = bestReply, (position, move)
+
+                    # Alpha-beta pruning
                     beta = min(beta, minEval)
                     if beta <= alpha:
                         return minEval, bestMove
+
+                    # Ajout de l'évaluation à la table de transposition
+                    self.transpositionTable[stateCode] = (minEval, bestMove)
 
             return minEval, bestMove
 
@@ -400,5 +429,4 @@ class chess:
 
 a = chess()
 print(a)
-print(a.isCheck(a.etat, 'white'))
-print(a.isCheckmate(a.etat, 'white'))
+print(a.getZobristCode(a.etat, 'white'))

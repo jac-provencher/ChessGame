@@ -135,6 +135,7 @@ while running:
                 partie.autoplay('black')
                 turn = 'white'
                 print(partie)
+                print(f"Table de transposition hit {partie.hits} fois")
 
     partie.cursorPosition = partie.windowToBoard(pygame.mouse.get_pos())
 
