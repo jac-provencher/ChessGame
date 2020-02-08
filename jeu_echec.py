@@ -162,7 +162,7 @@ class chess:
         pour l'état 'state' donné.
         :returns: int
         """
-        codes = [self.positionCodes[position][self.colorDico[color]+piece] for color, pieces in state.items() for position, piece in pieces.items()]
+        codes = (self.positionCodes[position][self.colorDico[color]+piece] for color, pieces in state.items() for position, piece in pieces.items())
         stateCode = reduce(lambda code1, code2: code1 ^ code2, codes)
 
         return stateCode ^ self.turnCode[couleur]
