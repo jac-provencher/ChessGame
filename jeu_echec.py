@@ -1,5 +1,5 @@
 from copy import deepcopy
-from itertools import chain, takewhile
+from itertools import chain, takewhile, product
 from more_itertools import first_true, flatten, take, tail
 from functools import reduce
 from random import randint
@@ -55,12 +55,11 @@ class chess:
         self.pieces = ['BP', 'BQ', 'BK', 'BF', 'BT', 'BC', 'WP', 'WQ', 'WK', 'WF', 'WT', 'WC']
         self.colorDico = {'black': 'B', 'white': 'W'}
         self.turnCode = {'black': randint(0, self.infinity), 'white': randint(0, self.infinity)}
-        self.positionCodes = {(x, y): {piece: randint(0, self.infinity) for piece in self.pieces} for x in range(1, 9) for y in range(1, 9)}
+        self.positionCodes = {(x, y): {piece: randint(0, self.infinity) for piece in self.pieces} for x, y in product(range(1, 9), range(1, 9))}
         self.transpositionTable = {}
         self.hits = 0
         self.petitRoque = False
         self.grandRoque = False
-        self.boardPositions = lambda: ((x, y) for x in range(1, 9) for y in range(1, 9))
         self.onBoard = lambda position: 1 <= position[0] <= 8 and 1 <= position[1] <= 8
         self.pawnPositions = lambda state: chain(state['black'], state['white'])
 
@@ -77,8 +76,9 @@ class chess:
     def moveBank(self, position, piece):
         """
         Méthode qui retourne un tuple des coups légals
-        pour la piece à la position en argument
-        :returns: tuple
+        pour la piece à la position en argument.
+
+        :returns: generator
         """
         x, y = position
         if piece == 'K':
@@ -102,7 +102,7 @@ class chess:
 
         # Pions portés fixes
         if piece in ('K', 'C'):
-            freeSpots = set(self.boardPositions()) - set(self.pawnPositions(state))
+            freeSpots = set(product(range(1, 9), range(1, 9))) - set(self.pawnPositions(state))
             legalMoves = filter(notCheck, freeSpots & set(self.moveBank(position, piece)))
             for move in legalMoves:
                 yield move
