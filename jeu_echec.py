@@ -1,6 +1,6 @@
 from copy import deepcopy
 from itertools import chain, takewhile, product
-from more_itertools import first_true, flatten, take, tail
+from more_itertools import first_true, flatten, take, tail, make_decorator
 from functools import reduce
 from random import randint
 
@@ -17,6 +17,7 @@ TODO LIST:
 (9) OK Faire algorithme minimax
 (10) Implanter le roque
 (11) OK Arranger killGenerator
+(12) Voir comment faire un décorateur pour moveBank
 """
 
 class ChessError(Exception):
@@ -90,7 +91,7 @@ class chess:
         elif piece == 'F':
             return (((x+i*n, y+j*n) for n in range(1, 9)) for i, j in tail(4, self.vectors))
         elif piece == 'C':
-            return ((x+1, y+2), (x-1, y+2), (x+2, y+1), (x-2, y+1), (x+2, y-1), (x-2, y-1), (x+1, y-2), (x-1, y-2))
+            return ((x+dx, y+dy) for dx, dy in chain(product((-1, 1), (-2, 2)), product((-2, 2), (-1, 1))))
 
     def moveGenerator(self, state, color, position):
         """
@@ -344,7 +345,7 @@ class chess:
         else:
             self.movePiece(color, pos1, pos2)
 
-    def minimax(self, depth, state, color, alpha, beta,  isMaximizing):
+    def minimax(self, depth, state, color, alpha, beta, isMaximizing):
         """
         Méthode permettant de chercher, à partir de l'arbre de récursion,
         le coup le plus avantageux pour le joueur 'color'.
